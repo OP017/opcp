@@ -1,0 +1,78 @@
+#include <errno.h>
+#include <stddef.h>
+#include <fcntl.h>    
+#include <string.h>
+#include <unistd.h>  
+#include <sys/types.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include "../include/opcp.h"
+
+int copy(const char *src, const char *dst, size_t buff_size)
+{
+	char *buffer = (char *) malloc(buff_size * sizeof(char));
+	int ret = 0;
+	int fd_src = -1;
+	int fd_dst = -1;
+
+	if (buffer == NULL) {
+		fprintf(stderr, "opcp: %s\n", strerror(errno));
+		return 1;
+	}
+
+	fd_src = open(src, O_RDONLY);
+	if (fd_src < 0) {
+		fprintf(stderr, "opcp: %s %s\n", src, strerror(errno));
+		ret = 1;
+		goto cleanup;
+	}
+	
+	fd_dst = open(dst, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+	if (fd_dst < 0) {
+		fprintf(stderr, "opcp: %s %s\n", dst, strerror(errno));
+		ret = 1;
+		goto cleanup;
+	}
+	
+	ssize_t bytes_read;
+
+	while ((bytes_read = read(fd_src, buffer, buff_size)) > 0) {
+		ssize_t len = 0;
+		size_t remain = bytes_read;
+		char *ptr = buffer;
+
+		while (remain > 0) {
+			len = write(fd_dst, ptr, remain);
+			if (len < 0) {
+				fprintf(stderr, "opcp: %s %s\n", dst, strerror(errno));
+				ret = 1;
+				goto cleanup;
+			}
+			remain -= len;
+			ptr += len;
+		}
+	}
+	if (bytes_read < 0) {
+		fprintf(stderr, "opcp: %s %s\n", src, strerror(errno));
+		ret = 1;
+		goto cleanup;
+	}
+
+	goto cleanup;
+
+cleanup:                                                                                                       
+       if (fd_src >= 0) {                                                                                         
+           if (close(fd_src) != 0) {                                                                              
+               fprintf(stderr, "opcp: close src: %s\n", strerror(errno));                                         
+               ret = 1;                                                                                           
+           }                                                                                                      
+       }                                                                                                          
+       if (fd_dst >= 0) {                                                                                         
+           if (close(fd_dst) != 0) {                                                                              
+               fprintf(stderr, "opcp: close dst: %s\n", strerror(errno));                                         
+               ret = 1;                                                                                           
+           }                                                                                                      
+       }                                                                                                          
+       free(buffer);                                                                                              
+       return ret; 
+}
