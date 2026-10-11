@@ -36,7 +36,22 @@ int copy(const char *src, const char *dst, size_t buff_size)
 	
 	ssize_t bytes_read;
 
-	while ((bytes_read = read(fd_src, buffer, buff_size)) > 0) {
+	while (1){
+
+		bytes_read = read(fd_src, buffer, buff_size);
+
+		if (bytes_read == 0) {
+			break;
+		}
+		if (bytes_read < 0) {
+			if (errno == EINTR) {
+				continue;
+			}
+			fprintf(stderr, "opcp: %s %s\n", src, strerror(errno));
+			ret = 1;
+			goto cleanup;
+		}
+		
 		ssize_t len = 0;
 		size_t remain = bytes_read;
 		char *ptr = buffer;
@@ -44,6 +59,10 @@ int copy(const char *src, const char *dst, size_t buff_size)
 		while (remain > 0) {
 			len = write(fd_dst, ptr, remain);
 			if (len < 0) {
+				if (errno == EINTR) {
+					continue;
+				}
+
 				fprintf(stderr, "opcp: %s %s\n", dst, strerror(errno));
 				ret = 1;
 				goto cleanup;
@@ -51,11 +70,6 @@ int copy(const char *src, const char *dst, size_t buff_size)
 			remain -= len;
 			ptr += len;
 		}
-	}
-	if (bytes_read < 0) {
-		fprintf(stderr, "opcp: %s %s\n", src, strerror(errno));
-		ret = 1;
-		goto cleanup;
 	}
 
 	goto cleanup;
