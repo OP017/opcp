@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "../include/opcp.h"
+#define CHUNK_SIZE (16 * 1024 * 1024) 
+
 
 int copy(const char *src, const char *dst, size_t buff_size)
 {
@@ -14,6 +16,8 @@ int copy(const char *src, const char *dst, size_t buff_size)
 	int ret = 0;
 	int fd_src = -1;
 	int fd_dst = -1;
+	off_t last_evict = 0; 
+	size_t bytes_since_evict = 0;
 
 	if (buffer == NULL) {
 		fprintf(stderr, "opcp: %s\n", strerror(errno));
@@ -34,6 +38,8 @@ int copy(const char *src, const char *dst, size_t buff_size)
 		goto cleanup;
 	}
 	
+	posix_fadvise(fd_src, 0, 0, POSIX_FADV_SEQUENTIAL);
+
 	ssize_t bytes_read;
 
 	while (1){
@@ -69,7 +75,23 @@ int copy(const char *src, const char *dst, size_t buff_size)
 			}
 			remain -= len;
 			ptr += len;
+			
+			// Posix Advise Dont Neeed 
+			bytes_since_evict += len;
+			
+			if (bytes_since_evict >= CHUNK_SIZE) {
+				posix_fadvise(fd_src, last_evict, bytes_since_evict, POSIX_FADV_DONTNEED);
+				posix_fadvise(fd_dst, last_evict, bytes_since_evict, POSIX_FADV_DONTNEED);
+				
+				last_evict += bytes_since_evict;
+				bytes_since_evict = 0; 
+			}
 		}
+	}
+
+	if (bytes_since_evict > 0) {
+		posix_fadvise(fd_src, last_evict, bytes_since_evict, POSIX_FADV_DONTNEED);
+		posix_fadvise(fd_dst, last_evict, bytes_since_evict, POSIX_FADV_DONTNEED);
 	}
 
 	goto cleanup;

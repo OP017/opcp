@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -Werror -Iinclude -std=c11
+CFLAGS = -Wall -Wextra -Werror -Iinclude -std=c11 -D_GNU_SOURCE
 
 opcp: main.o copy.o 
 	$(CC) $(CFLAGS) main.o copy.o -o opcp
