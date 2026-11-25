@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -Werror -Iinclude -std=c11 -D_GNU_SOURCE
+CFLAGS = -Wall -Wextra -Werror -Wconversion -Iinclude -std=c11 -D_GNU_SOURCE -O2
 
 opcp: main.o copy.o buffer_size_parser.o
 	$(CC) $(CFLAGS) buffer_size_parser.o main.o copy.o -o opcp

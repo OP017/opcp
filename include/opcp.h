@@ -3,6 +3,6 @@
 
 #include <stddef.h>
 int copy(const char *, const char *, size_t);
-long parse_size(const char *);
+size_t parse_size(const char *);
 
 #endif // ! OPCP_H
